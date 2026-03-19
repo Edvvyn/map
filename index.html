@@ -16,14 +16,12 @@
             --panel-bg: #1c1c1e;
             --text-main: #ffffff;
             --text-secondary: #8e8e93;
-            /* Цвета статусов (iOS/Glow style) */
             --color-green: #30d158;
             --color-green-glow: rgba(48, 209, 88, 0.3);
             --color-yellow: #ffd60a;
             --color-yellow-glow: rgba(255, 214, 10, 0.3);
             --color-red: #ff453a;
             --color-red-glow: rgba(255, 69, 58, 0.3);
-            /* Градиент кнопки */
             --btn-gradient: linear-gradient(135deg, #ff9f0a 0%, #ff3b30 100%);
         }
 
@@ -35,7 +33,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             overflow: hidden;
             height: 100vh;
-            -webkit-user-select: none; /* Запрет выделения текста */
+            -webkit-user-select: none;
             user-select: none;
         }
 
@@ -46,69 +44,55 @@
             background: var(--bg-color);
         }
 
-        /* Убираем копирайт Leaflet для чистоты */
         .leaflet-control-attribution { display: none !important; }
-        
-        /* Стилизация контейнера карты, чтобы не было серых вспышек */
-        .leaflet-container {
-            background-color: var(--bg-color) !important;
-        }
+        .leaflet-container { background-color: var(--bg-color) !important; }
 
-        /* --- 1. ВИЗУАЛ "ЗОНЫ КЛАДА" --- */
-        
-        /* CSS Анимация пульсации (дыхание) для SVG кругов Leaflet */
         @keyframes zonePulse {
             0% { stroke-opacity: 0.5; fill-opacity: 0.15; transform: scale(1); }
             50% { stroke-opacity: 1; fill-opacity: 0.3; transform: scale(1.03); }
             100% { stroke-opacity: 0.5; fill-opacity: 0.15; transform: scale(1); }
         }
 
-        /* Класс, который мы навесим на SVG path круга через JS */
         .district-zone {
             transform-origin: center;
             animation: zonePulse 3s ease-in-out infinite;
-            /* Улучшаем рендеринг SVG */
             shape-rendering: geometricPrecision;
+            pointer-events: none; /* Отключаем клики по визуальной зоне, ловить будет невидимая */
         }
 
-        /* Маленькая яркая точка в центре зоны */
         .center-dot {
             border-radius: 50%;
             border: 2px solid #ffffff;
             box-sizing: border-box;
-            box-shadow: 0 0 10px #ffffff, 0 0 20px inherit; /* Наследует цвет тени от JS */
+            box-shadow: 0 0 10px #ffffff, 0 0 20px inherit;
+            pointer-events: none;
         }
 
-        /* --- 2. ИНТЕРФЕЙС ПАНЕЛИ (Bottom Sheet) "ДОРОГО" --- */
+        /* Вылетающая панель */
         #bottom-panel {
             position: fixed; 
-            bottom: -110%; /* Полностью спрятана, с запасом на тень */
+            bottom: -110%; 
             left: 0; 
             width: 100%;
             background: var(--panel-bg);
-            /* Скругление 30px сверху */
             border-radius: 30px 30px 0 0;
-            transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1); /* Плавный вылет iOS style */
+            transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1); 
             z-index: 9999; 
             display: flex; 
             flex-direction: column; 
-            /* Паддинги с учетом safe-area на новых iPhone */
             padding: 12px 20px calc(20px + cubic-bezier(0.22, 0.61, 0.36, 1)) 20px;
             padding-bottom: calc(25px + env(safe-area-inset-bottom));
             box-sizing: border-box;
             box-shadow: 0 -15px 40px rgba(0,0,0,0.6);
-            /* Чтобы трансформация работала плавно */
             transform: translateY(0);
             will-change: transform;
         }
 
-        /* Панель открыта */
         #bottom-panel.open {
-            transform: translateY(-110%); /* Выезжает вверх */
+            transform: translateY(-110%); 
             bottom: 0;
         }
 
-        /* Индикатор перетаскивания (handle) */
         .panel-handle {
             width: 36px;
             height: 5px;
@@ -118,103 +102,42 @@
             flex-shrink: 0;
         }
 
-        /* Контент панели */
-        .panel-content {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .panel-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
+        .panel-content { display: flex; flex-direction: column; gap: 15px; }
+        .panel-header-row { display: flex; justify-content: space-between; align-items: flex-start; }
 
         #panel-title { 
-            font-size: 24px; 
-            font-weight: 800; 
-            letter-spacing: -0.5px;
-            color: var(--text-main);
-            margin: 0;
+            font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-main); margin: 0;
         }
 
         #panel-status { 
-            font-size: 15px; 
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.05);
+            font-size: 15px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: rgba(255,255,255,0.05);
         }
 
-        /* Статусные цвета текста */
         .status-many { color: var(--color-green); box-shadow: 0 0 10px var(--color-green-glow); }
         .status-few { color: var(--color-yellow); box-shadow: 0 0 10px var(--color-yellow-glow); }
         .status-none { color: var(--color-red); box-shadow: 0 0 10px var(--color-red-glow); }
 
-        /* Красивая карточка товара внутри панели */
         .product-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px; padding: 15px; display: flex; align-items: center; gap: 15px;
         }
 
         .product-icon {
-            font-size: 32px;
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 32px; width: 50px; height: 50px; background: rgba(255,255,255,0.05);
+            border-radius: 12px; display: flex; align-items: center; justify-content: center;
         }
 
-        .product-info {
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-        }
+        .product-info { display: flex; flex-direction: column; flex-grow: 1; }
+        #product-name { font-size: 17px; font-weight: 700; margin-bottom: 2px; }
+        #panel-time { font-size: 13px; color: var(--text-secondary); }
 
-        #product-name {
-            font-size: 17px;
-            font-weight: 700;
-            margin-bottom: 2px;
-        }
-
-        #panel-time {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        /* Кнопка: Яркая, градиентная */
         #buy-btn {
-            background: var(--btn-gradient);
-            color: #ffffff; 
-            border: none;
-            padding: 18px 0; 
-            border-radius: 16px; 
-            font-size: 16px; 
-            font-weight: 700; 
-            width: 100%;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3);
-            transition: opacity 0.2s, transform 0.1s;
-            margin-top: 10px;
-            outline: none;
-            -webkit-tap-highlight-color: transparent;
+            background: var(--btn-gradient); color: #ffffff; border: none; padding: 18px 0; 
+            border-radius: 16px; font-size: 16px; font-weight: 700; width: 100%;
+            text-transform: uppercase; cursor: pointer; box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3);
+            transition: opacity 0.2s, transform 0.1s; margin-top: 10px; outline: none; -webkit-tap-highlight-color: transparent;
         }
-
-        #buy-btn:active {
-            transform: scale(0.97);
-            opacity: 0.85;
-        }
+        #buy-btn:active { transform: scale(0.97); opacity: 0.85; }
 
     </style>
 </head>
@@ -224,117 +147,78 @@
     
     <div id="bottom-panel">
         <div class="panel-handle"></div>
-        
         <div class="panel-content">
             <div class="panel-header-row">
                 <h1 id="panel-title">Район</h1>
                 <div id="panel-status">Статус</div>
             </div>
-
             <div class="product-card">
                 <div class="product-icon">🎁</div>
                 <div class="product-info">
-                    <div id="product-name">Товар премиум класса</div>
+                    <div id="product-name">Товар</div>
                     <div id="panel-time">🕒 Обновлено: только что</div>
                 </div>
             </div>
-
             <button id="buy-btn">[ ЗАБРОНИРОВАТЬ И ОПЛАТИТЬ ]</button>
         </div>
     </div>
 
     <script>
-        // --- КОНФИГУРАЦИЯ ---
-        const ZONE_RADIUS_METERS = 150; // Радиус тумана (скрытия)
+        const ZONE_RADIUS_METERS = 150; 
+        const HITBOX_RADIUS_METERS = 400; // ОГРОМНАЯ невидимая зона для уверенного тапа
         const MAP_CENTER = [55.8714, 26.5161];
         const MAP_ZOOM = 13;
-
-        // Тема карты (Dark All, без этикеток для большей загадочности, или standard dark)
         const TILE_LAYER_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 
-        // --- 1. Инициализация Telegram WebApp ---
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Расширить на весь экран
+        tg.expand();
         tg.ready();
 
-        // Настройка цветов TWA под наш премиум стиль
         if (tg.setHeaderColor) tg.setHeaderColor('#121212');
         if (tg.setBackgroundColor) tg.setBackgroundColor('#121212');
 
-        // --- 2. Инициализация карты ---
-        // tap: false обязателен для корректной работы кликов в TWA на iOS
         const map = L.map('map', {
             zoomControl: false,
-            tap: false, 
+            tap: false, // Обязательно false для TWA
             attributionControl: false,
             dragging: true,
-            // Оптимизация рендеринга
             preferCanvas: true 
         }).setView(MAP_CENTER, MAP_ZOOM);
         
         L.tileLayer(TILE_LAYER_URL).addTo(map);
 
-        // Переменные для UI
         const panel = document.getElementById('bottom-panel');
         const panelTitle = document.getElementById('panel-title');
         const panelStatus = document.getElementById('panel-status');
         const productName = document.getElementById('product-name');
         const buyBtn = document.getElementById('buy-btn');
         
-        let currentItemsLayer = L.layerGroup().addTo(map); // Группа для легкой очистки
-        let selectedProductId = null; // ID текущего выбранного товара
+        let currentItemsLayer = L.layerGroup().addTo(map);
+        let selectedProductId = null;
 
-        // Глобальная функция для вибрации (чтобы не дублировать)
         function haptic(style = 'light') {
-            if (tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred(style);
-            }
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred(style);
         }
 
-        // --- Вспомогательная функция: Получение цветов зоны на основе количества ---
         function getZoneColors(count) {
-            if (count > 5) return { 
-                main: '#30d158', // Green (iOS Dark)
-                glow: 'rgba(48, 209, 88, 0.6)',
-                class: 'status-many',
-                text: '🟢 МНОГО'
-            };
-            if (count > 0) return { 
-                main: '#ffd60a', // Yellow (iOS Dark)
-                glow: 'rgba(255, 214, 10, 0.6)',
-                class: 'status-few',
-                text: '🟡 МАЛО'
-            };
-            return { 
-                main: '#ff453a', // Red (iOS Dark)
-                glow: 'rgba(255, 69, 58, 0.6)',
-                class: 'status-none',
-                text: '🔴 НЕТ'
-            };
+            if (count > 5) return { main: '#30d158', class: 'status-many', text: '🟢 МНОГО' };
+            if (count > 0) return { main: '#ffd60a', class: 'status-few', text: '🟡 МАЛО' };
+            return { main: '#ff453a', class: 'status-none', text: '🔴 НЕТ' };
         }
 
-
-        // --- UI ЛОГИКА ПАНЕЛИ ---
-        
         function openPanel(data, colors) {
-            selectedProductId = data.id; // Сохраняем ID для оплаты
-            
-            // Заполняем данные
+            selectedProductId = data.id;
             panelTitle.innerText = data.district;
             productName.innerText = data.product_name;
-            
-            // Стилизуем статус
             panelStatus.innerText = colors.text + ` (${data.count} шт.)`;
-            panelStatus.className = colors.class; // Вешаем CSS класс цвета
+            panelStatus.className = colors.class;
 
             if (data.count > 0) {
                 buyBtn.style.display = 'block';
-                buyBtn.innerText = `[ ЗАБРОНИРОВАТЬ И ОПЛАТИТЬ ]`;
             } else {
-                buyBtn.style.display = 'none'; // Скрываем кнопку если нет товара
+                buyBtn.style.display = 'none';
             }
 
-            // Анимированное открытие
             panel.classList.add('open');
             haptic('medium');
         }
@@ -346,14 +230,8 @@
             }
         }
 
-        // --- 3 & 4. ФИКС ДЛЯ ТЕЛЕФОНА, РАБОТА С ДАННЫМИ И ОТРИСОВКА ---
-
-        // Основная функция загрузки данных (вызывается при старте и может вызываться ботом)
         window.loadData = function(jsonData) {
-            // jsonData ожидается в формате: 
-            // [ {id: 101, district: "Центр", product_name: "Boss 1gr", lat: 55.8714, lon: 26.5161, count: 10}, ... ]
-            
-            currentItemsLayer.clearLayers(); // Удаляем старые зоны
+            currentItemsLayer.clearLayers();
 
             if (!jsonData || !Array.isArray(jsonData)) return;
 
@@ -361,94 +239,76 @@
                 const coords = [item.lat, item.lon];
                 const colors = getZoneColors(item.count);
 
-                // --- ВИЗУАЛ: Туман/Зона (L.circle) ---
-                const zone = L.circle(coords, {
+                // 1. Визуальная пульсирующая зона (клики игнорируются через CSS pointer-events: none)
+                L.circle(coords, {
                     radius: ZONE_RADIUS_METERS,
-                    color: colors.main,       // Цвет границы
+                    color: colors.main,
                     weight: 1,
-                    fillColor: colors.main,   // Цвет заливки
-                    fillOpacity: 0.15,         // Полупрозрачный "туман"
-                    className: 'district-zone', // CSS Класс для пульсации!
-                    interactive: true         // Зона должна принимать клики
-                });
+                    fillColor: colors.main,
+                    fillOpacity: 0.15,
+                    className: 'district-zone',
+                    interactive: false 
+                }).addTo(currentItemsLayer);
 
-                // --- ВИЗУАЛ: Центровая точка (L.marker с DivIcon) ---
+                // 2. Центральная точка (тоже визуальная, не интерактивная)
                 const dotIcon = L.divIcon({
-                    className: '', // Убираем дефолтные стили Leaflet
+                    className: '',
                     html: `<div class="center-dot" style="background-color: ${colors.main}; inherit; width: 10px; height: 10px; box-shadow: 0 0 15px ${colors.main}; transform: translate(-3px, -3px);"></div>`,
                     iconSize: [0, 0]
                 });
-                const dotMarker = L.marker(coords, { icon: dotIcon, interactive: false }); // Точка не интерактивна, клик ловит зона
+                L.marker(coords, { icon: dotIcon, interactive: false }).addTo(currentItemsLayer);
 
-                // Добавляем на карту
-                zone.addTo(currentItemsLayer);
-                dotMarker.addTo(currentItemsLayer);
+                // 3. НЕВИДИМЫЙ ЖИРНЫЙ КРУГ ДЛЯ ПАЛЬЦЕВ (Hitbox)
+                const hitBox = L.circle(coords, {
+                    radius: HITBOX_RADIUS_METERS,
+                    color: 'transparent',
+                    fillColor: 'transparent',
+                    fillOpacity: 0,
+                    interactive: true
+                }).addTo(currentItemsLayer);
 
-                // --- КРИТИЧЕСКИЙ ФИКС ДЛЯ МОБИЛЬНЫХ (Touch) ---
-                // Используем L.DomEvent.on напрямую на SVG элементе зоны после добавления на карту
-                // Это гарантирует срабатывание на смартфонах внутри Telegram.
-                
-                const svgElement = zone._path; // Получаем доступ к реальному SVG пути в DOM
-
-                if (svgElement) {
-                    // Создаем единую функцию обработки нажатия
-                    const handleTap = (e) => {
-                        // Останавливаем всплытие, чтобы не сработал клик по карте
-                        if (e) L.DomEvent.stopPropagation(e); 
-                        if (e && e.preventDefault && e.type === 'touchstart') e.preventDefault();
-                        
-                        openPanel(item, colors);
-                    };
-
-                    // Вешаем принудительно touchstart (для быстрых тапов на телефоне)
-                    L.DomEvent.on(svgElement, 'touchstart', handleTap);
-                    // Вешаем mousedown (для ПК)
-                    L.DomEvent.on(svgElement, 'mousedown', handleTap);
-                }
+                // ИСПОЛЬЗУЕМ DOM EVENT НАПРЯМУЮ
+                // Нужно дождаться добавления слоя в DOM, чтобы получить элемент
+                hitBox.on('add', function() {
+                    const el = hitBox.getElement(); // Достаем SVG node
+                    if (el) {
+                        L.DomEvent.on(el, 'touchstart mousedown', function(e) {
+                            L.DomEvent.stopPropagation(e); // Жестко рубим всплытие клика
+                            if (e.type === 'touchstart' && e.preventDefault) {
+                                e.preventDefault(); // Предотвращаем двойной клик (ghost click) на мобилках
+                            }
+                            openPanel(item, colors);
+                        });
+                    }
+                });
             });
         };
 
-
-        // --- Обработчики событий UI ---
-
-        // Кнопка оплаты
+        // Логика кнопок
         buyBtn.addEventListener('click', () => {
             if (selectedProductId) {
-                haptic('heavy'); // Мощная вибрация при оплате
-                
-                // Данные, которые улетят боту
-                const dataToSend = {
-                    action: 'pay_order',
-                    product_id: selectedProductId
-                };
-                
-                // Отправляем данные боту и закрываем WebApp
-                tg.sendData(JSON.stringify(dataToSend));
+                haptic('heavy');
+                tg.sendData(JSON.stringify({ action: 'pay_order', product_id: selectedProductId }));
             }
         });
 
-        // Скрытие панели при тапе по пустой карте
+        // Закрытие панели при клике мимо (по карте)
         map.on('mousedown touchstart', (e) => {
-            // Проверяем, что клик не по панели (хотя z-index должен защищать)
-            if (e.originalEvent.target.id === 'map') {
-                 closePanel();
-            }
+            // Поскольку клик по hitbox останавливает всплытие (stopPropagation), 
+            // сюда долетят только клики по реально пустой карте
+            closePanel();
         });
 
-
-        // --- ТЕСТОВЫЕ ДАННЫЕ (УДАЛИ В ПРОДАКШЕНЕ И ВЫЗЫВАЙ loadData ИЗ БОТА) ---
-        // Имитация JSON, который пришлет бот
+        // --- ТЕСТОВЫЕ ДАННЫЕ ---
         const mockData = [
             {id: 1, district: "Центр", product_name: "Elite SKU (1g)", lat: 55.8714, lon: 26.5161, count: 12},
             {id: 2, district: "Химия", product_name: "Standard Pack (2g)", lat: 55.8895, lon: 26.5595, count: 0},
-            {id: 3, district: "Новостройка", product_name: "Premium Product (0.5g)", lat: 55.8770, lon: 26.5450, count: 3},
-            {id: 4, district: "Форштадт", product_name: "Elite SKU (1g)", lat: 55.8620, lon: 26.5050, count: 8}
+            {id: 3, district: "Новостройка", product_name: "Premium Product (0.5g)", lat: 55.8770, lon: 26.5450, count: 3}
         ];
 
-        // Загружаем тестовые данные через 1 секунду после старта
         setTimeout(() => {
             window.loadData(mockData);
-        }, 1000);
+        }, 500);
 
     </script>
 </body>
