@@ -5,7 +5,87 @@
     <title>Daugavpils Premium Map</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+ 
+        // Фикс цветов для Telegram
+        if (tg.setHeaderColor) tg.setHeaderColor('#121212');
+ 
+        const map = L.map('map', {
+            zoomControl: false,
+            tap: false, 
+            dragging: true,
+            touchZoom: true
+        }).setView([55.8714, 26.5161], 13);
+ 
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+ 
+        const panel = document.getElementById('bottom-panel');
+        const buyBtn = document.getElementById('buy-btn');
+        let selectedProductId = null;
+ 
+        function openPanel(item) {
+            selectedProductId = item.id;
+            document.getElementById('panel-title').innerText = item.district;
+            document.getElementById('product-name').innerText = item.product_name;
+ 
+            const status = document.getElementById('panel-status');
+            status.innerText = item.count > 0 ? `🟢 В наличии (${item.count} шт.)` : `🔴 Нет в наличии`;
+            status.className = item.count > 5 ? 'status-many' : (item.count > 0 ? 'status-few' : 'status-none');
+ 
+            buyBtn.style.display = item.count > 0 ? 'block' : 'none';
+ 
+            // ПРИНУДИТЕЛЬНЫЙ ВЫЛЕТ
+            panel.style.bottom = "0"; 
+            panel.style.transform = "translateY(0)";
+ 
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        }
+ 
+        function closePanel() {
+            panel.style.bottom = "-110%";
+        }
+ 
+        window.loadData = function(data) {
+            data.forEach(item => {
+                const colors = item.count > 5 ? '#30d158' : (item.count > 0 ? '#ffd60a' : '#ff453a');
+ 
+                // 1. Визуальная пульсация
+                L.circle([item.lat, item.lon], {
+                    radius: 150, color: colors, fillColor: colors, fillOpacity: 0.2, className: 'district-zone', interactive: false
+                }).addTo(map);
+ 
+                // 2. НЕВИДИМЫЙ ХИТБОКС (Ловит клики)
+                const hitBox = L.circle([item.lat, item.lon], {
+                    radius: 400, color: 'transparent', fillColor: 'transparent', fillOpacity: 0, interactive: true
+                }).addTo(map);
+ 
+                // ЖЕСТКИЙ КЛИК ДЛЯ МОБИЛОК
+                hitBox.on('mousedown touchstart', function(e) {
+                    L.DomEvent.stopPropagation(e); // Остановить закрытие карты
+                    openPanel(item);
+                });
+            });
+        };
+ 
+        // ТЕСТОВЫЙ ЗАПУСК
+        const mock = [
+            {id: 1, district: "Центр", product_name: "Elite SKU (1g)", lat: 55.8714, lon: 26.5161, count: 12},
+            {id: 2, district: "Химия", product_name: "Standard Pack (2g)", lat: 55.8895, lon: 26.5595, count: 0},
+            {id: 3, district: "Новостройка", product_name: "Premium Product (0.5g)", lat: 55.8770, lon: 26.5450, count: 3}
+        ];
+        loadData(mock);
+ 
+        buyBtn.addEventListener('click', () => {
+            if (selectedProductId) {
+                tg.sendData(JSON.stringify({action: 'buy', id: selectedProductId}));
+            }
+        });
+ 
+        map.on('mousedown touchstart', () => { closePanel(); });
+    </script>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
