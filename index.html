@@ -11,57 +11,60 @@
         body { 
             margin: 0; 
             padding: 0; 
-            background: #121212; /* Темный фон */
+            background: #121212; 
             color: white; 
             font-family: sans-serif; 
-            overflow: hidden; /* Запрещаем прокрутку страницы */
+            overflow: hidden; 
         }
         #map { 
             height: 100vh; 
             width: 100vw; 
         }
 
-        /* Вылетающая панель (BottomSheet) */
+        /* Вылетающая панель */
         #bottom-panel {
             position: fixed; 
-            bottom: -150px; /* Изначально скрыта */
+            bottom: -200px; /* Спрятана по умолчанию */
             left: 0; 
             width: 100%;
-            background: rgba(20, 20, 20, 0.95); /* Черная панель */
+            background: rgba(25, 25, 25, 0.98); 
             border-top: 2px solid #edaf19; 
             border-radius: 20px 20px 0 0;
             transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            z-index: 1000;
+            z-index: 1000; /* Поверх элементов Leaflet */
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            padding: 20px 0;
-            box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+            padding: 25px 0;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.6);
         }
         #bottom-panel.open { 
-            bottom: 0; 
+            bottom: 0; /* Вылет панели */
         }
         #panel-title { 
-            font-size: 22px; 
+            font-size: 24px; 
             font-weight: bold; 
-            margin-bottom: 8px; 
+            margin-bottom: 10px; 
             color: #edaf19; 
         }
         #panel-info { 
             font-size: 16px; 
-            color: #eeeeee; 
-            margin-bottom: 15px; 
+            color: #ccc; 
+            margin-bottom: 20px; 
+            text-align: center;
+            padding: 0 20px;
         }
         #buy-btn {
             background: #edaf19; 
-            color: black; 
+            color: #000; 
             border: none;
-            padding: 12px 30px; 
-            border-radius: 10px; 
+            padding: 14px 35px; 
+            border-radius: 12px; 
             font-size: 16px;
-            font-weight: bold; 
+            font-weight: 900; 
             cursor: pointer;
             text-transform: uppercase;
+            transition: transform 0.1s;
         }
         #buy-btn:active {
             transform: scale(0.95);
@@ -73,25 +76,25 @@
     
     <div id="bottom-panel">
         <div id="panel-title">Район</div>
-        <div id="panel-info">Информация о наличии</div>
+        <div id="panel-info">Информация</div>
         <button id="buy-btn">ВЫБРАТЬ РАЙОН</button>
     </div>
 
     <script>
-        // Инициализация Telegram WebApp
+        // 1. Инициализация Telegram
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Развернуть на весь экран
+        tg.expand();
         tg.ready();
 
-        // Настройка карты Даугавпилса (скрыты кнопки зума)
-        const map = L.map('map', {zoomControl: false}).setView([55.8714, 26.5161], 13);
+        // 2. Инициализация карты (ВАЖНО ДЛЯ МОБИЛОК: tap: false, dragging: true)
+        const map = L.map('map', {
+            zoomControl: false,
+            tap: false,       // Отключаем встроенную обработку тапов Leaflet (чинит клики в TWA)
+            dragging: true    // Разрешаем перетаскивание карты
+        }).setView([55.8714, 26.5161], 13);
         
-        // Темная тема карты CartoDB
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-        }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        // Районы: Название -> [Широта, Долгота]
         const districts = {
             "Центр": [55.8714, 26.5161],
             "Химия": [55.8895, 26.5595],
@@ -102,84 +105,56 @@
         const panelTitle = document.getElementById('panel-title');
         const panelInfo = document.getElementById('panel-info');
         const buyBtn = document.getElementById('buy-btn');
-        
         let selectedDistrict = null;
 
-        // 1. ФУНКЦИЯ ДЛЯ ЗАПРОСА ЖИВЫХ ДАННЫХ
-        async function fetchStats() {
-            try {
-                // РАСКОММЕНТИРУЙТЕ И ЗАМЕНИТЕ НА СВОЙ URL ПОСЛЕ ЗАПУСКА СЕРВЕРА
-                // const response = await fetch('URL_ТВОЕГО_СЕРВЕРА/api/stats');
-                // const stats = await response.json();
+        // Эмуляция данных с сервера
+        const stats = {"Центр": 10, "Химия": 0, "Новостройка": 2};
 
-                // ПОКА ЧТО ИСПОЛЬЗУЕМ ЗАГЛУШКУ для тестов:
-                const stats = {"Центр": 10, "Химия": 3, "Новостройка": 0};
+        // 3. Отрисовка кругов
+        for (let name in districts) {
+            const count = stats[name] || 0;
+            let circleColor = count > 5 ? '#4ade80' : (count > 0 ? '#facc15' : '#f87171');
 
-                updateMap(stats);
-            } catch (error) {
-                console.error("Ошибка при получении данных статистики:", error);
-            }
-        }
+            const circle = L.circle(districts[name], {
+                color: circleColor, 
+                fillColor: circleColor, 
+                fillOpacity: 0.3, 
+                weight: 2,
+                radius: 1000 // Строго 1000 метров
+            }).addTo(map);
 
-        // 2. ФУНКЦИЯ ОБНОВЛЕНИЯ КРУГОВ И ЦВЕТОВ
-        function updateMap(stats) {
-            // Очищаем старые круги с карты
-            map.eachLayer(layer => { 
-                if(layer instanceof L.Circle) {
-                    map.removeLayer(layer); 
-                }
-            });
+            // Обработчики для мобильных устройств и ПК
+            circle.on('mousedown touchstart click', function(e) {
+                // Останавливаем событие, чтобы карта не считала это кликом по фону
+                L.DomEvent.stopPropagation(e);
 
-            // Отрисовываем новые круги
-            for (let name in districts) {
-                const count = stats[name] || 0;
+                selectedDistrict = name;
+                panelTitle.innerText = name;
                 
-                // Логика цвета: Зеленый (много > 5), Желтый (мало > 0), Красный (0)
-                let circleColor = count > 5 ? '#4ade80' : (count > 0 ? '#facc15' : '#f87171');
-
-                // Создаем круг с радиусом 1000 метров
-                L.circle(districts[name], {
-                    color: circleColor, 
-                    fillColor: circleColor, 
-                    fillOpacity: 0.25, 
-                    weight: 2, // толщина рамки
-                    radius: 1000 
-                }).addTo(map).on('click', () => {
-                    // Открытие панели при клике на круг
-                    selectedDistrict = name;
-                    panelTitle.innerText = name;
-                    
-                    if (count > 0) {
-                        panelInfo.innerText = `В наличии: ${count} шт.`;
-                        buyBtn.style.display = 'block';
-                    } else {
-                        panelInfo.innerText = 'В этом районе товара сейчас нет 😔';
-                        buyBtn.style.display = 'none'; // Скрываем кнопку, если товара нет
-                    }
-                    
-                    panel.classList.add('open');
-                });
-            }
+                if (count > 0) {
+                    panelInfo.innerText = `В наличии: ${count} шт.`;
+                    buyBtn.style.display = 'block'; // Показываем кнопку
+                } else {
+                    panelInfo.innerText = 'Товара нет в наличии 😔';
+                    buyBtn.style.display = 'none';  // Скрываем кнопку
+                }
+                
+                panel.classList.add('open');
+            });
         }
 
-        // 3. ОТПРАВКА ДАННЫХ В ТЕЛЕГРАМ БОТ
+        // 4. Отправка данных в бота
         buyBtn.addEventListener('click', () => {
             if (selectedDistrict) {
-                // Отправляем название района боту
                 tg.sendData(selectedDistrict);
             }
         });
 
-        // Скрытие панели при клике по пустой области карты
-        map.on('click', () => { 
+        // 5. Закрытие панели при клике/тапе в любое другое место карты
+        map.on('mousedown touchstart click', () => { 
             panel.classList.remove('open'); 
             selectedDistrict = null;
         });
-
-        // Запрашиваем данные при старте
-        fetchStats();
-        // Запускаем обновление каждые 10 секунд (10000 мс)
-        setInterval(fetchStats, 10000);
 
     </script>
 </body>
