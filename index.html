@@ -26,24 +26,12 @@
         }
 
         body { 
-            margin: 0; 
-            padding: 0; 
-            background: var(--bg-color); 
-            color: var(--text-main); 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            overflow: hidden;
-            height: 100vh;
-            -webkit-user-select: none;
-            user-select: none;
+            margin: 0; padding: 0; background: var(--bg-color); color: var(--text-main); 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            overflow: hidden; height: 100vh; user-select: none; -webkit-user-select: none;
         }
 
-        #map { 
-            height: 100%; 
-            width: 100%; 
-            z-index: 1; 
-            background: var(--bg-color);
-        }
-
+        #map { height: 100%; width: 100%; z-index: 1; background: var(--bg-color); }
         .leaflet-control-attribution { display: none !important; }
         .leaflet-container { background-color: var(--bg-color) !important; }
 
@@ -54,89 +42,50 @@
         }
 
         .district-zone {
-            transform-origin: center;
-            animation: zonePulse 3s ease-in-out infinite;
-            shape-rendering: geometricPrecision;
-            pointer-events: none; /* Отключаем клики по визуальной зоне, ловить будет невидимая */
+            transform-origin: center; animation: zonePulse 3s ease-in-out infinite;
+            pointer-events: none !important; /* Отключаем любые касания по визуалу */
         }
 
         .center-dot {
-            border-radius: 50%;
-            border: 2px solid #ffffff;
-            box-sizing: border-box;
+            border-radius: 50%; border: 2px solid #ffffff; box-sizing: border-box;
             box-shadow: 0 0 10px #ffffff, 0 0 20px inherit;
-            pointer-events: none;
+            pointer-events: none !important;
         }
 
-        /* Вылетающая панель */
+        /* --- ЖЕЛЕЗОБЕТОННЫЙ ХИТБОКС ДЛЯ ПАЛЬЦЕВ --- */
+        .hitbox-marker {
+            background-color: transparent; 
+            /* РАСКОММЕНТИРУЙ СТРОКУ НИЖЕ, ЧТОБЫ УВИДЕТЬ ЗОНЫ НАЖАТИЯ (красные квадраты) */
+            /* background-color: rgba(255, 0, 0, 0.4); border: 1px solid red; */
+            border-radius: 50%;
+            z-index: 1000 !important; /* Поверх всего на карте */
+            cursor: pointer;
+        }
+
         #bottom-panel {
-            position: fixed; 
-            bottom: -110%; 
-            left: 0; 
-            width: 100%;
-            background: var(--panel-bg);
-            border-radius: 30px 30px 0 0;
-            transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1); 
-            z-index: 9999; 
-            display: flex; 
-            flex-direction: column; 
-            padding: 12px 20px calc(20px + cubic-bezier(0.22, 0.61, 0.36, 1)) 20px;
-            padding-bottom: calc(25px + env(safe-area-inset-bottom));
-            box-sizing: border-box;
-            box-shadow: 0 -15px 40px rgba(0,0,0,0.6);
-            transform: translateY(0);
-            will-change: transform;
+            position: fixed; bottom: -110%; left: 0; width: 100%;
+            background: var(--panel-bg); border-radius: 30px 30px 0 0;
+            transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1); 
+            z-index: 9999; display: flex; flex-direction: column; 
+            padding: 12px 20px calc(20px + env(safe-area-inset-bottom)) 20px;
+            box-shadow: 0 -15px 40px rgba(0,0,0,0.6); transform: translateY(0);
         }
 
-        #bottom-panel.open {
-            transform: translateY(-110%); 
-            bottom: 0;
-        }
-
-        .panel-handle {
-            width: 36px;
-            height: 5px;
-            background: #4a4a4c;
-            border-radius: 3px;
-            margin: 0 auto 20px auto;
-            flex-shrink: 0;
-        }
-
+        #bottom-panel.open { transform: translateY(-110%); bottom: 0; }
+        .panel-handle { width: 36px; height: 5px; background: #4a4a4c; border-radius: 3px; margin: 0 auto 20px auto; }
         .panel-content { display: flex; flex-direction: column; gap: 15px; }
         .panel-header-row { display: flex; justify-content: space-between; align-items: flex-start; }
-
-        #panel-title { 
-            font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-main); margin: 0;
-        }
-
-        #panel-status { 
-            font-size: 15px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: rgba(255,255,255,0.05);
-        }
-
+        #panel-title { font-size: 24px; font-weight: 800; margin: 0; }
+        #panel-status { font-size: 15px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: rgba(255,255,255,0.05); }
         .status-many { color: var(--color-green); box-shadow: 0 0 10px var(--color-green-glow); }
         .status-few { color: var(--color-yellow); box-shadow: 0 0 10px var(--color-yellow-glow); }
         .status-none { color: var(--color-red); box-shadow: 0 0 10px var(--color-red-glow); }
-
-        .product-card {
-            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px; padding: 15px; display: flex; align-items: center; gap: 15px;
-        }
-
-        .product-icon {
-            font-size: 32px; width: 50px; height: 50px; background: rgba(255,255,255,0.05);
-            border-radius: 12px; display: flex; align-items: center; justify-content: center;
-        }
-
+        .product-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 15px; display: flex; align-items: center; gap: 15px; }
+        .product-icon { font-size: 32px; width: 50px; height: 50px; background: rgba(255,255,255,0.05); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
         .product-info { display: flex; flex-direction: column; flex-grow: 1; }
         #product-name { font-size: 17px; font-weight: 700; margin-bottom: 2px; }
         #panel-time { font-size: 13px; color: var(--text-secondary); }
-
-        #buy-btn {
-            background: var(--btn-gradient); color: #ffffff; border: none; padding: 18px 0; 
-            border-radius: 16px; font-size: 16px; font-weight: 700; width: 100%;
-            text-transform: uppercase; cursor: pointer; box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3);
-            transition: opacity 0.2s, transform 0.1s; margin-top: 10px; outline: none; -webkit-tap-highlight-color: transparent;
-        }
+        #buy-btn { background: var(--btn-gradient); color: #ffffff; border: none; padding: 18px 0; border-radius: 16px; font-size: 16px; font-weight: 700; width: 100%; text-transform: uppercase; cursor: pointer; transition: opacity 0.2s, transform 0.1s; margin-top: 10px; -webkit-tap-highlight-color: transparent; }
         #buy-btn:active { transform: scale(0.97); opacity: 0.85; }
 
     </style>
@@ -165,7 +114,6 @@
 
     <script>
         const ZONE_RADIUS_METERS = 150; 
-        const HITBOX_RADIUS_METERS = 400; // ОГРОМНАЯ невидимая зона для уверенного тапа
         const MAP_CENTER = [55.8714, 26.5161];
         const MAP_ZOOM = 13;
         const TILE_LAYER_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
@@ -179,10 +127,9 @@
 
         const map = L.map('map', {
             zoomControl: false,
-            tap: false, // Обязательно false для TWA
+            tap: false, // Оставляем false, чтобы карта не глючила
             attributionControl: false,
-            dragging: true,
-            preferCanvas: true 
+            dragging: true
         }).setView(MAP_CENTER, MAP_ZOOM);
         
         L.tileLayer(TILE_LAYER_URL).addTo(map);
@@ -213,11 +160,7 @@
             panelStatus.innerText = colors.text + ` (${data.count} шт.)`;
             panelStatus.className = colors.class;
 
-            if (data.count > 0) {
-                buyBtn.style.display = 'block';
-            } else {
-                buyBtn.style.display = 'none';
-            }
+            buyBtn.style.display = data.count > 0 ? 'block' : 'none';
 
             panel.classList.add('open');
             haptic('medium');
@@ -239,7 +182,7 @@
                 const coords = [item.lat, item.lon];
                 const colors = getZoneColors(item.count);
 
-                // 1. Визуальная пульсирующая зона (клики игнорируются через CSS pointer-events: none)
+                // 1. Визуальный туман (НЕкликабельно)
                 L.circle(coords, {
                     radius: ZONE_RADIUS_METERS,
                     color: colors.main,
@@ -250,7 +193,7 @@
                     interactive: false 
                 }).addTo(currentItemsLayer);
 
-                // 2. Центральная точка (тоже визуальная, не интерактивная)
+                // 2. Центральная точка (НЕкликабельно)
                 const dotIcon = L.divIcon({
                     className: '',
                     html: `<div class="center-dot" style="background-color: ${colors.main}; inherit; width: 10px; height: 10px; box-shadow: 0 0 15px ${colors.main}; transform: translate(-3px, -3px);"></div>`,
@@ -258,25 +201,28 @@
                 });
                 L.marker(coords, { icon: dotIcon, interactive: false }).addTo(currentItemsLayer);
 
-                // 3. НЕВИДИМЫЙ ЖИРНЫЙ КРУГ ДЛЯ ПАЛЬЦЕВ (Hitbox)
-                const hitBox = L.circle(coords, {
-                    radius: HITBOX_RADIUS_METERS,
-                    color: 'transparent',
-                    fillColor: 'transparent',
-                    fillOpacity: 0,
-                    interactive: true
-                }).addTo(currentItemsLayer);
+                // 3. ТОТ САМЫЙ ХИТБОКС (HTML DIV 80x80 пикселей)
+                const hitBoxIcon = L.divIcon({
+                    className: 'hitbox-marker',
+                    iconSize: [80, 80], // Огромная зона 80х80 пикселей
+                    iconAnchor: [40, 40] // Центруем прямо над точкой
+                });
 
-                // ИСПОЛЬЗУЕМ DOM EVENT НАПРЯМУЮ
-                // Нужно дождаться добавления слоя в DOM, чтобы получить элемент
-                hitBox.on('add', function() {
-                    const el = hitBox.getElement(); // Достаем SVG node
+                const hitboxMarker = L.marker(coords, { icon: hitBoxIcon, interactive: true }).addTo(currentItemsLayer);
+
+                // Прямой обработчик DOM-событий для Телеграма
+                hitboxMarker.on('add', function() {
+                    const el = hitboxMarker.getElement();
                     if (el) {
-                        L.DomEvent.on(el, 'touchstart mousedown', function(e) {
-                            L.DomEvent.stopPropagation(e); // Жестко рубим всплытие клика
-                            if (e.type === 'touchstart' && e.preventDefault) {
-                                e.preventDefault(); // Предотвращаем двойной клик (ghost click) на мобилках
-                            }
+                        // Ловим именно касание пальцем
+                        el.addEventListener('touchstart', function(e) {
+                            e.stopPropagation(); // Не отдаем клик карте
+                            openPanel(item, colors);
+                        }, { passive: true }); // passive: true помогает избежать конфликтов скролла
+
+                        // Для ПК и старых устройств
+                        el.addEventListener('click', function(e) {
+                            e.stopPropagation();
                             openPanel(item, colors);
                         });
                     }
@@ -284,7 +230,6 @@
             });
         };
 
-        // Логика кнопок
         buyBtn.addEventListener('click', () => {
             if (selectedProductId) {
                 haptic('heavy');
@@ -292,12 +237,8 @@
             }
         });
 
-        // Закрытие панели при клике мимо (по карте)
-        map.on('mousedown touchstart', (e) => {
-            // Поскольку клик по hitbox останавливает всплытие (stopPropagation), 
-            // сюда долетят только клики по реально пустой карте
-            closePanel();
-        });
+        // Клик по пустой карте закроет панель
+        map.on('click', closePanel);
 
         // --- ТЕСТОВЫЕ ДАННЫЕ ---
         const mockData = [
@@ -306,9 +247,7 @@
             {id: 3, district: "Новостройка", product_name: "Premium Product (0.5g)", lat: 55.8770, lon: 26.5450, count: 3}
         ];
 
-        setTimeout(() => {
-            window.loadData(mockData);
-        }, 500);
+        setTimeout(() => { window.loadData(mockData); }, 500);
 
     </script>
 </body>
