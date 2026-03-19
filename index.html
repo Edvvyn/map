@@ -4,255 +4,114 @@
     <meta charset="utf-8" />
     <title>Daugavpils Premium Map</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
     <style>
         :root {
             --bg-color: #121212;
             --panel-bg: #1c1c1e;
             --text-main: #ffffff;
-            --text-secondary: #8e8e93;
-            --color-green: #30d158;
-            --color-green-glow: rgba(48, 209, 88, 0.3);
-            --color-yellow: #ffd60a;
-            --color-yellow-glow: rgba(255, 214, 10, 0.3);
-            --color-red: #ff453a;
-            --color-red-glow: rgba(255, 69, 58, 0.3);
             --btn-gradient: linear-gradient(135deg, #ff9f0a 0%, #ff3b30 100%);
         }
-
-        body { 
-            margin: 0; 
-            padding: 0; 
-            background: var(--bg-color); 
-            color: var(--text-main); 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            overflow: hidden;
-            height: 100vh;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-
-        #map { 
-            height: 100%; 
-            width: 100%; 
-            z-index: 1; 
-            background: var(--bg-color);
-        }
-
-        .leaflet-control-attribution { display: none !important; }
-        .leaflet-container { background-color: var(--bg-color) !important; }
-
-        @keyframes zonePulse {
-            0% { stroke-opacity: 0.5; fill-opacity: 0.15; transform: scale(1); }
-            50% { stroke-opacity: 1; fill-opacity: 0.3; transform: scale(1.03); }
-            100% { stroke-opacity: 0.5; fill-opacity: 0.15; transform: scale(1); }
-        }
-
-        .district-zone {
-            transform-origin: center;
-            animation: zonePulse 3s ease-in-out infinite;
-            shape-rendering: geometricPrecision;
-            pointer-events: none; /* Отключаем клики по визуальной зоне, ловить будет невидимая */
-        }
-
-        .center-dot {
-            border-radius: 50%;
-            border: 2px solid #ffffff;
-            box-sizing: border-box;
-            box-shadow: 0 0 10px #ffffff, 0 0 20px inherit;
-            pointer-events: none;
-        }
-
-        /* Вылетающая панель */
+        body, html { margin: 0; padding: 0; background: var(--bg-color); height: 100vh; overflow: hidden; font-family: sans-serif; }
+        #map { height: 100%; width: 100%; z-index: 1; }
+ 
+        /* Панель */
         #bottom-panel {
-            position: fixed; 
-            bottom: -110%; 
-            left: 0; 
-            width: 100%;
-            background: var(--panel-bg);
-            border-radius: 30px 30px 0 0;
-            transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1); 
-            z-index: 9999; 
-            display: flex; 
-            flex-direction: column; 
-            padding: 12px 20px calc(20px + cubic-bezier(0.22, 0.61, 0.36, 1)) 20px;
-            padding-bottom: calc(25px + env(safe-area-inset-bottom));
-            box-sizing: border-box;
-            box-shadow: 0 -15px 40px rgba(0,0,0,0.6);
-            transform: translateY(0);
-            will-change: transform;
+            position: fixed; bottom: -110%; left: 0; width: 100%;
+            background: var(--panel-bg); border-radius: 25px 25px 0 0;
+            transition: bottom 0.4s ease; z-index: 10000;
+            padding: 20px; box-sizing: border-box; box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; gap: 15px;
         }
-
-        #bottom-panel.open {
-            transform: translateY(-110%); 
-            bottom: 0;
-        }
-
-        .panel-handle {
-            width: 36px;
-            height: 5px;
-            background: #4a4a4c;
-            border-radius: 3px;
-            margin: 0 auto 20px auto;
-            flex-shrink: 0;
-        }
-
-        .panel-content { display: flex; flex-direction: column; gap: 15px; }
-        .panel-header-row { display: flex; justify-content: space-between; align-items: flex-start; }
-
-        #panel-title { 
-            font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-main); margin: 0;
-        }
-
-        #panel-status { 
-            font-size: 15px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: rgba(255,255,255,0.05);
-        }
-
-        .status-many { color: var(--color-green); box-shadow: 0 0 10px var(--color-green-glow); }
-        .status-few { color: var(--color-yellow); box-shadow: 0 0 10px var(--color-yellow-glow); }
-        .status-none { color: var(--color-red); box-shadow: 0 0 10px var(--color-red-glow); }
-
-        .product-card {
-            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px; padding: 15px; display: flex; align-items: center; gap: 15px;
-        }
-
-        .product-icon {
-            font-size: 32px; width: 50px; height: 50px; background: rgba(255,255,255,0.05);
-            border-radius: 12px; display: flex; align-items: center; justify-content: center;
-        }
-
-        .product-info { display: flex; flex-direction: column; flex-grow: 1; }
-        #product-name { font-size: 17px; font-weight: 700; margin-bottom: 2px; }
-        #panel-time { font-size: 13px; color: var(--text-secondary); }
-
+        #panel-title { font-size: 22px; font-weight: bold; margin: 0; color: #ff9f0a; }
+        #product-name { font-size: 18px; color: #ccc; }
         #buy-btn {
-            background: var(--btn-gradient); color: #ffffff; border: none; padding: 18px 0; 
-            border-radius: 16px; font-size: 16px; font-weight: 700; width: 100%;
-            text-transform: uppercase; cursor: pointer; box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3);
-            transition: opacity 0.2s, transform 0.1s; margin-top: 10px; outline: none; -webkit-tap-highlight-color: transparent;
+            background: var(--btn-gradient); color: white; border: none;
+            padding: 15px; border-radius: 12px; font-weight: bold; font-size: 16px;
         }
-        #buy-btn:active { transform: scale(0.97); opacity: 0.85; }
-
+        .panel-handle { width: 40px; height: 4px; background: #555; border-radius: 2px; margin: 0 auto 10px auto; }
     </style>
 </head>
 <body>
-    
     <div id="map"></div>
-    
     <div id="bottom-panel">
         <div class="panel-handle"></div>
-        <div class="panel-content">
-            <div class="panel-header-row">
-                <h1 id="panel-title">Район</h1>
-                <div id="panel-status">Статус</div>
-            </div>
-            <div class="product-card">
-                <div class="product-icon">🎁</div>
-                <div class="product-info">
-                    <div id="product-name">Товар</div>
-                    <div id="panel-time">🕒 Обновлено: только что</div>
-                </div>
-            </div>
-            <button id="buy-btn">[ ЗАБРОНИРОВАТЬ И ОПЛАТИТЬ ]</button>
-        </div>
+        <h1 id="panel-title">Район</h1>
+        <div id="product-name">Товар</div>
+        <div id="panel-status" style="color: #8e8e93;">🕒 Обновлено: только что</div>
+        <button id="buy-btn">ЗАБРОНИРОВАТЬ</button>
     </div>
-
+ 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
         tg.ready();
-
-        const map = L.map('map', {
-            zoomControl: false,
-            tap: false, 
-            dragging: true,
-        }).setView([55.8714, 26.5161], 13);
  
+        // 1. Инициализация карты
+        const map = L.map('map', { zoomControl: false, tap: false }).setView([55.8714, 26.5161], 13);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
  
-        const panel = document.getElementById('bottom-panel');
-        const buyBtn = document.getElementById('buy-btn');
-        let selectedProductId = null;
-
-        // Создаем контейнер для невидимых кнопок поверх карты
+        // 2. Слой для невидимых кнопок (Бетонный метод)
         const overlay = document.createElement('div');
-        overlay.style.position = 'absolute';
-        overlay.style.top = 0; overlay.style.left = 0;
-        overlay.style.width = '100%'; overlay.style.height = '100%';
-        overlay.style.pointerEvents = 'none'; // Чтобы можно было двигать карту через него
-        overlay.style.zIndex = 1000;
+        overlay.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:5000;';
         document.body.appendChild(overlay);
-
+ 
+        const panel = document.getElementById('bottom-panel');
+        let selectedId = null;
+ 
         function openPanel(item) {
-            selectedProductId = item.id;
+            selectedId = item.id;
             document.getElementById('panel-title').innerText = item.district;
             document.getElementById('product-name').innerText = item.product_name;
-            const status = document.getElementById('panel-status');
-            status.innerText = item.count > 0 ? 🟢 В наличии (${item.count} шт.) : 🔴 Нет;
-            panel.style.bottom = "0"; 
+            panel.style.bottom = "0";
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
         }
-
+ 
         function closePanel() { panel.style.bottom = "-110%"; }
-
+ 
+        // 3. Функция отрисовки зон
         window.loadData = function(data) {
-            overlay.innerHTML = ''; // Очистка кнопок
+            overlay.innerHTML = ''; 
             data.forEach(item => {
-                const colors = item.count > 0 ? '#30d158' : '#ff453a';
-
-                // Рисуем только визуал на карте
-                L.circle([item.lat, item.lon], {
-                    radius: 150, color: colors, fillColor: colors, fillOpacity: 0.3, interactive: false
-                }).addTo(map);
-
-                // Создаем реальную HTML кнопку
+                const color = item.count > 0 ? '#30d158' : '#ff453a';
+ 
+                // Визуал на карте
+                L.circle([item.lat, item.lon], { radius: 200, color: color, fillOpacity: 0.3, interactive: false }).addTo(map);
+ 
+                // Создаем кнопку-невидимку
                 const btn = document.createElement('div');
-                btn.style.position = 'absolute';
-                btn.style.width = '80px'; // Большая область для тапа
-                btn.style.height = '80px';
-                btn.style.borderRadius = '50%';
-                btn.style.pointerEvents = 'auto'; // ВКЛЮЧАЕМ КЛИКИ
-                btn.style.cursor = 'pointer';
-                // btn.style.background = 'rgba(255,0,0,0.2)'; // РАСКОММЕНТИРУЙ ДЛЯ ТЕСТА (увидишь красные зоны клика)
-                
+                btn.style.cssText = 'position:absolute; width:80px; height:80px; pointer-events:auto; cursor:pointer;';
+                // btn.style.background = 'rgba(255,0,0,0.3)'; // РАСКОММЕНТИРУЙ ЭТО ДЛЯ ТЕСТА (увидишь зоны клика красным)
                 overlay.appendChild(btn);
-
-                // Функция привязки кнопки к координатам карты
-                const updatePos = () => {
-                    const pos = map.latLngToContainerPoint([item.lat, item.lon]);
-                    btn.style.left = (pos.x - 40) + 'px';
-                    btn.style.top = (pos.y - 40) + 'px';
+ 
+                const update = () => {
+                    const p = map.latLngToContainerPoint([item.lat, item.lon]);
+                    btn.style.left = (p.x - 40) + 'px'; btn.style.top = (p.y - 40) + 'px';
                 };
-
-                map.on('move zoom viewreset', updatePos);
-                updatePos();
-
-                // САМЫЙ НАДЕЖНЫЙ КЛИК В МИРЕ
-                btn.onclick = (e) => {
-                    e.stopPropagation();
-                    openPanel(item);
-                };
-                btn.ontouchstart = (e) => {
-                    e.stopPropagation();
-                    openPanel(item);
-                };
+                map.on('move zoom viewreset', update);
+                update();
+ 
+                // Клик/Тап
+                btn.onclick = (e) => { e.stopPropagation(); openPanel(item); };
+                btn.ontouchstart = (e) => { e.stopPropagation(); openPanel(item); };
             });
         };
-
+ 
+        // ТЕСТОВЫЕ ДАННЫЕ
         const mock = [
-            {id: 1, district: "Центр", product_name: "Elite SKU", lat: 55.8714, lon: 26.5161, count: 12},
+            {id: 1, district: "Центр", product_name: "Elite SKU", lat: 55.8714, lon: 26.5161, count: 10},
             {id: 2, district: "Химия", product_name: "Standard", lat: 55.8895, lon: 26.5595, count: 0},
-            {id: 3, district: "Новостройка", product_name: "Premium", lat: 55.8770, lon: 26.5450, count: 3}
+            {id: 3, district: "Новостройка", product_name: "Premium", lat: 55.8770, lon: 26.5450, count: 5}
         ];
-        loadData(mock);
-
+ 
+        setTimeout(() => { loadData(mock); }, 500);
+ 
         map.on('mousedown touchstart', () => { closePanel(); });
+        document.getElementById('buy-btn').onclick = () => {
+            if(selectedId) tg.sendData(JSON.stringify({action: 'buy', id: selectedId}));
+        };
     </script>
 </body>
 </html>
