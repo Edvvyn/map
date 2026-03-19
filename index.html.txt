@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daugavpils Map</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: #1a1a1a; }
+        #map { height: 100vh; width: 100vw; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Развернуть на весь экран
+
+        // Карта Даугавпилса (центр города)
+        var map = L.map('map').setView([55.8714, 26.5161], 13);
+
+        // Темная тема карты (CartoDB DarkMatter)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+        // Твои районы: [Широта, Долгота], Название
+        const districts = [
+            { name: "Центр", coords: [55.8714, 26.5161], count: 10 }, // count - сколько товара (потом сделаем авто)
+            { name: "Химия", coords: [55.8895, 26.5595], count: 3 },
+            { name: "Новостройка", coords: [55.8770, 26.5450], count: 0 }
+        ];
+
+        districts.forEach(d => {
+            let color = d.count > 5 ? 'green' : (d.count > 0 ? 'yellow' : 'red');
+            
+            // Рисуем круг 3км (радиус в метрах - 1500м для наглядности, 3000м может быть много)
+            L.circle(d.coords, {
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.3,
+                radius: 1500 
+            }).addTo(map).on('click', function() {
+                if (d.count > 0) {
+                    tg.sendData(d.name); // Отправляем название района в бот
+                } else {
+                    alert("В этом районе пока пусто!");
+                }
+            });
+
+            // Метка с названием
+            L.marker(d.coords).addTo(map).bindPopup(d.name + ": " + d.count + " шт.");
+        });
+    </script>
+</body>
+</html>
