@@ -181,7 +181,7 @@
             text-align: center;
             line-height: 1.4;
             margin-top: 2px;
-            margin-bottom: 5px; /* Поднимаем кнопку чуть выше за счет малых отступов */
+            margin-bottom: 5px;
         }
 
         /* Кнопка: Яркая, градиентная, со свечением */
@@ -197,7 +197,7 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             cursor: pointer;
-            box-shadow: 0 0 25px rgba(253, 160, 133, 0.4); /* Мягкое свечение */
+            box-shadow: 0 0 25px rgba(253, 160, 133, 0.4); 
             transition: all 0.2s ease;
             -webkit-tap-highlight-color: transparent;
         }
@@ -264,7 +264,7 @@
         const map = L.map('map', {
             zoomControl: false,
             attributionControl: false,
-            tap: false,            // Отключаем стандартный tap Leaflet
+            tap: false,            // Отключаем стандартный tap Leaflet (критично для Telegram)
             dragging: true,
             zoomAnimation: true,
             fadeAnimation: true
@@ -319,9 +319,7 @@
 
             // Заполняем панель данными
             panelTitle.innerText = itemData.district;
-            panelProdName.innerText = itemData.product_name; // Новый ключ JSON
-            
-            // Учитываем, что цены может не быть в вашем JSON, добавляем проверку
+            panelProdName.innerText = itemData.product_name;
             panelPrice.innerText = itemData.price ? `${itemData.price} €` : `0 €`; 
             
             const color = getStatusColor(itemData.count);
@@ -353,17 +351,17 @@
         // 4. ДАННЫЕ И СВЯЗЬ (loadData)
         // =========================================
 
-        // Глобальная функция: ожидает JSON (id, district, product_name, lat, lon, count)
+        // Глобальная функция: ожидает JSON (id, district, product_name, lat, lon, count, price)
         window.loadData = function(jsonData) {
             itemsLayerGroup.clearLayers(); 
 
             if (!jsonData || !Array.isArray(jsonData)) return;
 
             jsonData.forEach(item => {
-                const pos = [item.lat, item.lon]; // Используем новый ключ .lon
+                const pos = [item.lat, item.lon];
                 const color = getStatusColor(item.count);
 
-                // 1. Создаем визуальную пульсирующую зону (туман) - радиус 150м
+                // 1. Создаем визуальную пульсирующую зону (туман) - радиус 150м. НИКАКИХ ТОЧЕК.
                 const zoneCircle = L.circle(pos, {
                     radius: 150, 
                     color: color,        
@@ -374,12 +372,10 @@
                     interactive: false   
                 });
 
-                // Точки удалены, отрисовывается только туман (zoneCircle)
-
                 // -----------------------------------------
                 // 2. ФИКС ДЛЯ ТЕЛЕФОНА (Критично)
                 // -----------------------------------------
-                // Создаем невидимый интерактивный слой поверх (радиус 200м для удобства тапа)
+                // Невидимый интерактивный слой поверх (радиус 200м для удобства тапа)
                 const touchLayer = L.circle(pos, {
                     radius: 200, 
                     color: 'transparent',
@@ -405,7 +401,7 @@
         };
 
         // =========================================
-        // 5. ОБРАБОТЧИКИ СОБЫТИЙ
+        // 5. ОБРАБОТЧИКИ СОБЫТИЙ И ИНИЦИАЛИЗАЦИЯ
         // =========================================
 
         map.on('mousedown touchstart', function() {
@@ -425,19 +421,26 @@
             }
         });
 
-        // =========================================
-        // Тестовая загрузка данных 
-        // В продакшене эту часть удалить
-        // =========================================
-        const testData = [
-            {id: 101, product_name: "Super Lemon Haze", district: "Центр", lat: 55.8714, lon: 26.5161, count: 12, price: 20},
-            {id: 102, product_name: "White Widow", district: "Химия", lat: 55.8895, lon: 26.5595, count: 3, price: 18},
-            {id: 103, product_name: "OG Kush", district: "Новостройка", lat: 55.8770, lon: 26.5450, count: 0, price: 22}
-        ];
-        
-        setTimeout(() => {
-            window.loadData(testData);
-        }, 1000);
+        // Автоматическая подгрузка данных при старте (если они переданы извне)
+        document.addEventListener('DOMContentLoaded', () => {
+            // Вариант А: Бот передал данные через глобальную переменную
+            if (window.__INITIAL_DATA__) {
+                window.loadData(window.__INITIAL_DATA__);
+            } 
+            // Вариант Б: Бот передал данные через GET параметр (например, ?data=%5B%7B...)
+            else {
+                const urlParams = new URLSearchParams(window.location.search);
+                const dataParam = urlParams.get('data');
+                if (dataParam) {
+                    try {
+                        const parsedData = JSON.parse(decodeURIComponent(dataParam));
+                        window.loadData(parsedData);
+                    } catch (e) {
+                        console.error("Ошибка парсинга данных из URL", e);
+                    }
+                }
+            }
+        });
 
     </script>
 </body>
