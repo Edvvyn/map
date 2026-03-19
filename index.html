@@ -1,56 +1,108 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Daugavpils Map</title>
+    <title>Daugavpils Dark Map</title>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body { margin: 0; padding: 0; background: #1a1a1a; }
+        body { margin: 0; padding: 0; background: #1a1a1a; color: white; font-family: sans-serif; }
         #map { height: 100vh; width: 100vw; }
+ 
+        /* Нижняя вылетающая панель */
+        #bottom-panel {
+            position: fixed; bottom: -100px; left: 0; width: 100%;
+            background: rgba(45, 45, 45, 0.95);
+            border-top: 2px solid #edaf19; border-radius: 20px 20px 0 0;
+            transition: bottom 0.3s ease; z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; padding: 15px 0;
+        }
+        #bottom-panel.open { bottom: 0; }
+        #panel-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; color: #edaf19; }
+        #panel-info { font-size: 14px; color: #ccc; margin-bottom: 10px; }
+        #buy-btn {
+            background: #edaf19; color: black; border: none;
+            padding: 10px 25px; border-radius: 10px; font-weight: bold; cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    <div id="bottom-panel">
+        <div id="panel-title">Центр</div>
+        <div id="panel-info">Много товара в наличии (10 шт.)</div>
+        <button id="buy-btn">Выбрать район</button>
+    </div>
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand(); // Развернуть на весь экран
-
-        // Карта Даугавпилса (центр города)
-        var map = L.map('map').setView([55.8714, 26.5161], 13);
-
-        // Темная тема карты (CartoDB DarkMatter)
+        tg.ready();
+ 
+        // Карта Даугавпилса
+        var map = L.map('map', {zoomControl: false}).setView([55.8714, 26.5161], 13);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-
-        // Твои районы: [Широта, Долгота], Название
-        const districts = [
-            { name: "Центр", coords: [55.8714, 26.5161], count: 10 }, // count - сколько товара (потом сделаем авто)
-            { name: "Химия", coords: [55.8895, 26.5595], count: 3 },
-            { name: "Новостройка", coords: [55.8770, 26.5450], count: 0 }
-        ];
-
-        districts.forEach(d => {
-            let color = d.count > 5 ? 'green' : (d.count > 0 ? 'yellow' : 'red');
-            
-            // Рисуем круг 3км (радиус в метрах - 1500м для наглядности, 3000м может быть много)
-            L.circle(d.coords, {
-                color: color,
-                fillColor: color,
-                fillOpacity: 0.3,
-                radius: 1500 
-            }).addTo(map).on('click', function() {
-                if (d.count > 0) {
-                    tg.sendData(d.name); // Отправляем название района в бот
-                } else {
-                    alert("В этом районе пока пусто!");
+ 
+        // Районы: [Широта, Долгота], Название
+        const districts = {
+            "Центр": [55.8714, 26.5161],
+            "Химия": [55.8895, 26.5595],
+            "Новостройка": [55.8770, 26.5450]
+        };
+ 
+        const panel = document.getElementById('bottom-panel');
+        const buyBtn = document.getElementById('buy-btn');
+        let selectedDistrict = null;
+ 
+        // Функция обновления цветов и кругов
+        async function updateMap() {
+            try {
+                // Запрос к твоему боту (когда зальешь main.py)
+                // const response = await fetch('YOUR_BOT_WEB_SERVER_URL/api/stats');
+                // const stats = await response.json();
+ 
+                // ПОКА ЧТО ИСПОЛЬЗУЕМ ЗАГЛУШКУ, пока main.py не обновлен
+                const stats = {"Центр": 10, "Химия": 3, "Новостройка": 0};
+ 
+                // Очищаем старые круги
+                map.eachLayer(layer => { if(layer instanceof L.Circle) map.removeLayer(layer); });
+ 
+                for (let name in districts) {
+                    const count = stats[name] || 0;
+                    let color = count > 5 ? 'green' : (count > 0 ? 'yellow' : 'red');
+ 
+                    // Радиус 1.5 км (3 км диаметр)
+                    L.circle(districts[name], {
+                        color: color, fillColor: color, fillOpacity: 0.2, radius: 1500 
+                    }).addTo(map).on('click', () => {
+                        selectedDistrict = name;
+                        panel.classList.add('open');
+                        document.getElementById('panel-title').innerText = name;
+                        document.getElementById('panel-info').innerText = count > 0 
+                            ? `Товар в наличии (${count} шт.). Можно брать!`
+                            : 'В этом районе пока пусто. Заходи позже!';
+                        buyBtn.style.display = count > 0 ? 'block' : 'none';
+                    });
                 }
-            });
-
-            // Метка с названием
-            L.marker(d.coords).addTo(map).bindPopup(d.name + ": " + d.count + " шт.");
+            } catch (e) { console.error("Ошибка обновления карты:", e); }
+        }
+ 
+        // Кнопка внизу: отправить данные в бот
+        buyBtn.addEventListener('click', () => {
+            if (selectedDistrict) {
+                tg.sendData(selectedDistrict);
+            }
         });
+ 
+        // Закрыть панель при клике по карте
+        map.on('click', () => { panel.classList.remove('open'); });
+ 
+        // Авто-обновление раз в 10 секунд
+        updateMap();
+        setInterval(updateMap, 10000);
+ 
     </script>
 </body>
 </html>
+ 
