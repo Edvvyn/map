@@ -8,154 +8,121 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body { 
-            margin: 0; 
-            padding: 0; 
-            background: #121212; 
-            color: white; 
-            font-family: sans-serif; 
-            overflow: hidden; 
-        }
-        #map { 
-            height: 100vh; 
-            width: 100vw; 
-        }
-
+        body { margin: 0; padding: 0; background: #121212; color: white; font-family: sans-serif; overflow: hidden; }
+        #map { height: 100vh; width: 100vw; z-index: 1; }
+ 
         /* Вылетающая панель */
         #bottom-panel {
             position: fixed; 
-            bottom: -200px; /* Спрятана по умолчанию */
+            bottom: -250px; /* Спрятана */
             left: 0; 
             width: 100%;
-            background: rgba(25, 25, 25, 0.98); 
-            border-top: 2px solid #edaf19; 
+            background: #1e1e1e; 
+            border-top: 3px solid #edaf19; 
             border-radius: 20px 20px 0 0;
-            transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            z-index: 1000; /* Поверх элементов Leaflet */
+            transition: bottom 0.3s ease; 
+            z-index: 9999; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            padding: 25px 0;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.6);
+            padding: 20px 0 40px 0;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.7);
         }
-        #bottom-panel.open { 
-            bottom: 0; /* Вылет панели */
-        }
-        #panel-title { 
-            font-size: 24px; 
-            font-weight: bold; 
-            margin-bottom: 10px; 
-            color: #edaf19; 
-        }
-        #panel-info { 
-            font-size: 16px; 
-            color: #ccc; 
-            margin-bottom: 20px; 
-            text-align: center;
-            padding: 0 20px;
-        }
+ 
+        #panel-title { font-size: 24px; font-weight: bold; margin-bottom: 5px; color: #edaf19; }
+        #panel-info { font-size: 16px; color: #bbb; margin-bottom: 20px; }
+ 
         #buy-btn {
-            background: #edaf19; 
-            color: #000; 
-            border: none;
-            padding: 14px 35px; 
-            border-radius: 12px; 
-            font-size: 16px;
-            font-weight: 900; 
-            cursor: pointer;
+            background: #edaf19; color: #000; border: none;
+            padding: 15px 45px; border-radius: 12px; 
+            font-size: 18px; font-weight: bold; 
             text-transform: uppercase;
-            transition: transform 0.1s;
         }
-        #buy-btn:active {
-            transform: scale(0.95);
-        }
+        .leaflet-control-attribution { display: none; }
     </style>
 </head>
 <body>
     <div id="map"></div>
-    
-    <div id="bottom-panel">
+ 
+    <div id="bottom-panel" id="panel_obj">
         <div id="panel-title">Район</div>
         <div id="panel-info">Информация</div>
         <button id="buy-btn">ВЫБРАТЬ РАЙОН</button>
     </div>
-
+ 
     <script>
-        // 1. Инициализация Telegram
         const tg = window.Telegram.WebApp;
         tg.expand();
         tg.ready();
-
-        // 2. Инициализация карты (ВАЖНО ДЛЯ МОБИЛОК: tap: false, dragging: true)
+ 
+        // Инициализация карты
         const map = L.map('map', {
             zoomControl: false,
-            tap: false,       // Отключаем встроенную обработку тапов Leaflet (чинит клики в TWA)
-            dragging: true    // Разрешаем перетаскивание карты
+            tap: false, 
+            dragging: true
         }).setView([55.8714, 26.5161], 13);
-        
+ 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-
+ 
         const districts = {
             "Центр": [55.8714, 26.5161],
             "Химия": [55.8895, 26.5595],
             "Новостройка": [55.8770, 26.5450]
         };
-
+ 
+        // ТУТ МЕНЯЙ ЦИФРЫ (Количество товара)
+        const stats = {
+            "Центр": 10, 
+            "Химия": 0, 
+            "Новостройка": 2
+        };
+ 
         const panel = document.getElementById('bottom-panel');
-        const panelTitle = document.getElementById('panel-title');
-        const panelInfo = document.getElementById('panel-info');
         const buyBtn = document.getElementById('buy-btn');
         let selectedDistrict = null;
-
-        // Эмуляция данных с сервера
-        const stats = {"Центр": 10, "Химия": 0, "Новостройка": 2};
-
-        // 3. Отрисовка кругов
+ 
         for (let name in districts) {
             const count = stats[name] || 0;
-            let circleColor = count > 5 ? '#4ade80' : (count > 0 ? '#facc15' : '#f87171');
-
+            let color = count > 5 ? '#4ade80' : (count > 0 ? '#facc15' : '#f87171');
+ 
             const circle = L.circle(districts[name], {
-                color: circleColor, 
-                fillColor: circleColor, 
-                fillOpacity: 0.3, 
+                color: color, 
+                fillColor: color, 
+                fillOpacity: 0.4, 
                 weight: 2,
-                radius: 1000 // Строго 1000 метров
+                radius: 1000 
             }).addTo(map);
-
-            // Обработчики для мобильных устройств и ПК
-            circle.on('mousedown touchstart click', function(e) {
-                // Останавливаем событие, чтобы карта не считала это кликом по фону
+ 
+            // ФУНКЦИЯ ОТКРЫТИЯ
+            const openMe = (e) => {
                 L.DomEvent.stopPropagation(e);
-
                 selectedDistrict = name;
-                panelTitle.innerText = name;
-                
-                if (count > 0) {
-                    panelInfo.innerText = `В наличии: ${count} шт.`;
-                    buyBtn.style.display = 'block'; // Показываем кнопку
-                } else {
-                    panelInfo.innerText = 'Товара нет в наличии 😔';
-                    buyBtn.style.display = 'none';  // Скрываем кнопку
-                }
-                
-                panel.classList.add('open');
-            });
+                document.getElementById('panel-title').innerText = name;
+                document.getElementById('panel-info').innerText = count > 0 ? "В наличии: " + count + " шт." : "Товара нет 😔";
+ 
+                buyBtn.style.display = count > 0 ? 'block' : 'none';
+                panel.style.bottom = "0px"; // ВЫЕЗЖАЕТ
+ 
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            };
+ 
+            // Вешаем на все типы нажатий
+            circle.on('click', openMe);
+            circle.on('mousedown', openMe);
         }
-
-        // 4. Отправка данных в бота
+ 
         buyBtn.addEventListener('click', () => {
             if (selectedDistrict) {
                 tg.sendData(selectedDistrict);
             }
         });
-
-        // 5. Закрытие панели при клике/тапе в любое другое место карты
+ 
+        // Закрытие при клике на карту
         map.on('mousedown touchstart click', () => { 
-            panel.classList.remove('open'); 
-            selectedDistrict = null;
+            panel.style.bottom = "-250px"; 
         });
-
+ 
     </script>
 </body>
 </html>
+ 
